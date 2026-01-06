@@ -3,7 +3,7 @@ DESTDIR=/
 PREFIX=/usr
 
 duplicate: duplicate.c
-	$(CC) $< -o $@
+	$(CC) $< -o $@ -lxxhash
 
 .PHONY:
 install: duplicate
