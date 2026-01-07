@@ -68,7 +68,7 @@ checksum(const char *path, int nbytes) {
     return hash;
 }
 
-static int
+static void
 process_dir(const char *parent_path) {
     DIR *dir;
     static struct dirent *d;
@@ -109,7 +109,6 @@ process_dir(const char *parent_path) {
         }
     }
     closedir(dir);
-    return 0;
 }
 
 int
