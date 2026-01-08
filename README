@@ -1,0 +1,25 @@
+duplicate
+
+Find all duplicate files in a directory and optionally delete them
+
+Speed
+
+$ find ~/dir/ -type f | wc -l
+4698
+$ time duplicate ~/dir/ >/dev/null
+real	0m 0.78s
+user	0m 0.10s
+sys	0m 0.68s
+
+Examples
+
+# find all duplicates
+$ duplicate ~/dir/
+rm /home/exa/dir/file.png # /home/exa/dir/copy1/file.png
+# delete all duplicates
+$ duplicate ~/dir/ | sh
+
+dependencies
+
+- uthash
+- xxhash
