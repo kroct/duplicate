@@ -1,6 +1,6 @@
 CC=cc
 DESTDIR=/
-PREFIX=/usr
+PREFIX=/usr/bin
 
 duplicate: duplicate.c
 	$(CC) $< -o $@
