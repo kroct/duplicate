@@ -1,11 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <dirent.h>
-#include <xxhash.h>
-#include <uthash.h>
 #include <sys/stat.h>
+#include <uthash.h>
 
-#define SMALL_HASH_BYTES 4096
+#define CHECK_BYTES 4096
 
 struct filehash {
    size_t size;
@@ -22,36 +21,31 @@ filesize(const char *path) {
    return st.st_size;
 }
 
-static XXH64_hash_t
-checksum(const char *path, int nbytes) {
-   size_t size;
-   XXH64_hash_t hash;
-   char *buffer;
-   FILE *file;
-
-   fflush(stdout);
-   file = fopen(path, "r");
-   if(!file) {
-      fprintf(stderr, "%s: No such file or directory\n", path);
-      exit(1);
-   }
-   if(nbytes > 0) {
-      size = nbytes;
-   } else {
-      fseek(file, 0, SEEK_END);
-      size = ftell(file);
-      fseek(file, 0, SEEK_SET);
-   }
-   buffer = malloc(size+1);
-   if(!buffer) {
+int
+is_duplicate(const char *path1, const char *path2, size_t size) {
+   static char buf1[CHECK_BYTES];
+   static char buf2[CHECK_BYTES];
+   char *bigbuf1, *bigbuf2;
+   FILE *f1, *f2;
+   f1 = fopen(path1, "r");
+   f2 = fopen(path2, "r");
+   fread(buf1, 1, CHECK_BYTES, f1);
+   fread(buf2, 1, CHECK_BYTES, f2);
+   if(strcmp(buf1, buf2) != 0)
+      return 0;
+   bigbuf1 = malloc(size-CHECK_BYTES+1);
+   if(!bigbuf1) {
       fprintf(stderr, "Out of memory\n");
       exit(1);
    }
-   size = fread(buffer, 1, size, file);
-   hash = XXH64(buffer, size, 0);
-   free(buffer);
-   fclose(file);
-   return hash;
+   bigbuf2 = malloc(size-CHECK_BYTES+1);
+   if(!bigbuf2) {
+      fprintf(stderr, "Out of memory\n");
+      exit(1);
+   }
+   fread(bigbuf1, 1, size-CHECK_BYTES, f1);
+   fread(bigbuf2, 1, size-CHECK_BYTES, f2);
+   return strcmp(bigbuf1, bigbuf2) == 0 ? 1 : 0;
 }
 
 static void
@@ -90,12 +84,9 @@ process_dir(const char *parent_path) {
          HASH_FIND(hh,filehashes,&f->size,sizeof(size_t),suspect);
          if(!suspect) {
             HASH_ADD(hh,filehashes,size,sizeof(size_t),f);
-         } else {
-            if(checksum(path, SMALL_HASH_BYTES) == checksum(suspect->path, SMALL_HASH_BYTES)
-               && checksum(path, 0) == checksum(suspect->path, 0)) {
-                  printf("rm %s # %s\n", path, suspect->path);
-                  continue;
-            }
+         } else if(is_duplicate(path, suspect->path, size)) {
+               printf("rm %s # %s\n", path, suspect->path);
+               continue;
          }
       }
    }
