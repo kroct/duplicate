@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <dirent.h>
+#include <sys/stat.h>
 #include <xxhash.h>
 #include <uthash.h>
 
@@ -30,14 +31,9 @@ die(const char *msg) {
 
 static inline size_t
 filesize(const char *path) {
-    size_t size;
-    FILE *file;
-
-    file = fopen(path, "r");
-    fseek(file, 0, SEEK_END);
-    size = ftell(file);
-    fclose(file);
-    return size;
+   static struct stat st;
+   stat(path, &st);
+   return st.st_size;
 }
 
 static XXH64_hash_t
@@ -73,7 +69,11 @@ process_dir(const char *parent_path) {
     DIR *dir;
     static struct dirent *d;
 
-    dir = eopendir(parent_path);
+    dir = opendir(parent_path);
+    if(!dir) {
+        fprintf(stderr, "Couldn't open %s/\n", parent_path);
+        return;
+    }
     while((d = readdir(dir))) {
         char path[PATH_MAX];
 
